@@ -1,0 +1,39 @@
+name: build-windows-exe
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - launcher.cpp
+      - .github/workflows/build-windows.yml
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install MSYS2 (MinGW)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-gcc-libgfortran
+
+      - name: Build .exe
+        shell: msys2 {0}
+        run: >
+          x86_64-w64-mingw32-g++ -std=c++17 -O2
+          -static -static-libgcc -static-libstdc++
+          -lws2_32
+          -o launcher.exe launcher.cpp
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: launcher-windows-x64
+          path: launcher.exe
+          if-no-files-found: error
