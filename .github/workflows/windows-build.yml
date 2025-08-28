@@ -1,0 +1,62 @@
+name: Windows C++ Build
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'cursor.file/one.cpp'
+      - '.github/workflows/windows-build.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'cursor.file/one.cpp'
+      - '.github/workflows/windows-build.yml'
+  workflow_dispatch: {}
+  release:
+    types: [created]
+
+jobs:
+  build:
+    name: Build EXE (MSVC)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build (cl)
+        shell: cmd
+        run: >-
+          cl /nologo /EHsc /O2 /DNDEBUG /DUNICODE /D_UNICODE cursor.file/one.cpp
+          user32.lib shell32.lib shlwapi.lib ole32.lib
+          /Fe:StartV2ChatGPT.exe /link /SUBSYSTEM:WINDOWS
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StartV2ChatGPT
+          path: StartV2ChatGPT.exe
+
+  release:
+    name: Attach EXE to GitHub Release
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: windows-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: StartV2ChatGPT
+          path: ./dist
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/StartV2ChatGPT.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
